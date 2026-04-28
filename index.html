@@ -336,9 +336,6 @@
     const MAP_ZOOM            = 10;
     // ====================
 
-    let pendingSpots = null;
-    let mapsLoaded   = false;
-
     function showError(msg) {
       const el = document.getElementById("error-msg");
       el.textContent = "⚠️ " + msg;
@@ -394,15 +391,19 @@
 
     document.getElementById("panel-close-btn").addEventListener("click", closePanel);
 
-    function renderMap(spots) {
-      const map = new google.maps.Map(document.getElementById("map"), {
+    async function renderMap(spots) {
+      const { Map } = await google.maps.importLibrary("maps");
+      const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+
+      const map = new Map(document.getElementById("map"), {
         center: MAP_CENTER,
         zoom: MAP_ZOOM,
         mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapId: "86485ccd8aba384c8cb10059",
       });
 
       spots.forEach(function(spot) {
-        const marker = new google.maps.Marker({
+        const marker = new AdvancedMarkerElement({
           position: { lat: spot.latitude, lng: spot.longitude },
           map: map,
           title: spot.spot_name,
@@ -418,12 +419,6 @@
       countEl.style.display = "block";
     }
 
-    // Maps API ロード完了コールバック（script タグの callback= で呼ばれる）
-    window.onGoogleMapsReady = function() {
-      mapsLoaded = true;
-      if (pendingSpots !== null) renderMap(pendingSpots);
-    };
-
     function fetchSpots() {
       fetch(SPOTS_API_URL)
         .then(function(res) {
@@ -431,21 +426,20 @@
           return res.json();
         })
         .then(function(data) {
-          pendingSpots = data;
-          if (mapsLoaded) renderMap(data);
+          renderMap(data).catch(function(err) {
+            showError("地図の表示に失敗しました: " + err.message);
+          });
         })
         .catch(function(err) {
           showError("スポットデータの取得に失敗しました: " + err.message);
         });
     }
 
-    // Maps API と spots を並行取得
     (function() {
       const script = document.createElement("script");
       script.src =
         "https://maps.googleapis.com/maps/api/js" +
         "?key=" + GOOGLE_MAPS_API_KEY +
-        "&callback=onGoogleMapsReady" +
         "&loading=async";
       script.async = true;
       script.onerror = function() {
