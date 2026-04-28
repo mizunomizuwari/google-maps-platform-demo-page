@@ -409,7 +409,7 @@
           title: spot.spot_name,
         });
 
-        marker.addListener("click", function() {
+        marker.addEventListener("gmp-click", function() {
           openPanel(spot);
         });
       });
