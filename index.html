@@ -41,9 +41,13 @@
     }
 
     .header-icon {
-      font-size: 2rem;
-      line-height: 1;
-      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 2px solid var(--amber-l);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
     }
 
     .header-title {
@@ -282,7 +286,7 @@
 <body>
 
   <header>
-    <div class="header-icon">🪲</div>
+    <img class="header-icon" src="./kabuto.png" alt="カブトムシ">
     <div class="header-title">
       <h1>ドコドコカブトムシ</h1>
       <p>カブトムシ・クワガタ採集スポットマップ</p>
@@ -326,7 +330,7 @@
 
   <script>
     // ===== 定数設定 =====
-    const YOLP_APP_ID      = "YOUR_APP_ID_HERE";
+    const YOLP_APP_ID      = "dmVyPTIwMjUwNyZpZD1qNkk5NHFpYkJlJmhhc2g9TWpkak16RTBaV1ZpTmpJd1lXWTVNQQ";
     const SPOTS_API_URL    = "https://example.com/api/spots"; // 採集スポットAPIのURL
     const MAP_CENTER       = { lat: 35.660, lng: 139.500 };   // 初期表示中心
     const MAP_ZOOM         = 10;
