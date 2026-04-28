@@ -330,11 +330,14 @@
 
   <script>
     // ===== 定数設定 =====
-    const YOLP_APP_ID      = "dmVyPTIwMjUwNyZpZD1qNkk5NHFpYkJlJmhhc2g9TWpkak16RTBaV1ZpTmpJd1lXWTVNQQ";
-    const SPOTS_API_URL    = "https://example.com/api/spots"; // 採集スポットAPIのURL
-    const MAP_CENTER       = { lat: 35.660, lng: 139.500 };   // 初期表示中心
-    const MAP_ZOOM         = 10;
+    const GOOGLE_MAPS_API_KEY = "YOUR_API_KEY_HERE";
+    const SPOTS_API_URL       = "https://example.com/api/spots"; // 採集スポットAPIのURL
+    const MAP_CENTER          = { lat: 35.660, lng: 139.500 };   // 初期表示中心
+    const MAP_ZOOM            = 10;
     // ====================
+
+    let pendingSpots = null;
+    let mapsLoaded   = false;
 
     function showError(msg) {
       const el = document.getElementById("error-msg");
@@ -344,11 +347,8 @@
 
     function openPanel(spot) {
       document.getElementById("panel-spot-name").textContent = spot.spot_name;
-
-      const confirmed = spot.confirmed_date
-        ? "確認日: " + spot.confirmed_date
-        : "";
-      document.getElementById("panel-confirmed").textContent = confirmed;
+      document.getElementById("panel-confirmed").textContent =
+        spot.confirmed_date ? "確認日: " + spot.confirmed_date : "";
 
       document.getElementById("panel-summary").textContent =
         spot.collection_summary || "—";
@@ -394,22 +394,21 @@
 
     document.getElementById("panel-close-btn").addEventListener("click", closePanel);
 
-    function initMap(spots) {
-      const map = new Y.Map("map");
-      map.drawMap(
-        new Y.LatLng(MAP_CENTER.lat, MAP_CENTER.lng),
-        MAP_ZOOM,
-        Y.Map.NORMAL
-      );
+    function renderMap(spots) {
+      const map = new google.maps.Map(document.getElementById("map"), {
+        center: MAP_CENTER,
+        zoom: MAP_ZOOM,
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+      });
 
       spots.forEach(function(spot) {
-        const latlng  = new Y.LatLng(spot.latitude, spot.longitude);
-        const marker  = new Y.Marker(latlng);
-        const label   = new Y.Label(spot.spot_name);
-        marker.addFeature(label);
-        map.addFeature(marker);
+        const marker = new google.maps.Marker({
+          position: { lat: spot.latitude, lng: spot.longitude },
+          map: map,
+          title: spot.spot_name,
+        });
 
-        Y.Event.observe(marker, "click", function() {
+        marker.addListener("click", function() {
           openPanel(spot);
         });
       });
@@ -419,6 +418,12 @@
       countEl.style.display = "block";
     }
 
+    // Maps API ロード完了コールバック（script タグの callback= で呼ばれる）
+    window.onGoogleMapsReady = function() {
+      mapsLoaded = true;
+      if (pendingSpots !== null) renderMap(pendingSpots);
+    };
+
     function fetchSpots() {
       fetch(SPOTS_API_URL)
         .then(function(res) {
@@ -426,25 +431,30 @@
           return res.json();
         })
         .then(function(data) {
-          initMap(data);
+          pendingSpots = data;
+          if (mapsLoaded) renderMap(data);
         })
         .catch(function(err) {
           showError("スポットデータの取得に失敗しました: " + err.message);
         });
     }
 
-    function loadScript() {
+    // Maps API と spots を並行取得
+    (function() {
       const script = document.createElement("script");
       script.src =
-        "https://map.yahooapis.jp/js/V3/jsapi?appid=" + YOLP_APP_ID;
-      script.onload = fetchSpots;
+        "https://maps.googleapis.com/maps/api/js" +
+        "?key=" + GOOGLE_MAPS_API_KEY +
+        "&callback=onGoogleMapsReady" +
+        "&loading=async";
+      script.async = true;
       script.onerror = function() {
-        showError("Yahoo Maps の読み込みに失敗しました。App ID を確認してください。");
+        showError("Google Maps の読み込みに失敗しました。API キーを確認してください。");
       };
       document.head.appendChild(script);
-    }
+    })();
 
-    loadScript();
+    fetchSpots();
   </script>
 </body>
 </html>
