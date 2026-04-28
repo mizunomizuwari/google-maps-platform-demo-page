@@ -399,10 +399,11 @@
         center: MAP_CENTER,
         zoom: MAP_ZOOM,
         mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapId: "DEMO_MAP_ID",
       });
 
       spots.forEach(function(spot) {
-        const marker = new google.maps.Marker({
+        const marker = new google.maps.marker.AdvancedMarkerElement({
           position: { lat: spot.latitude, lng: spot.longitude },
           map: map,
           title: spot.spot_name,
@@ -445,6 +446,7 @@
       script.src =
         "https://maps.googleapis.com/maps/api/js" +
         "?key=" + GOOGLE_MAPS_API_KEY +
+        "&libraries=marker" +
         "&callback=onGoogleMapsReady" +
         "&loading=async";
       script.async = true;
