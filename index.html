@@ -3,111 +3,420 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YOLP マップデモ</title>
+  <title>ドコドコカブトムシ</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --forest:   #2a5c1e;
+      --forest-d: #1a3d12;
+      --bark:     #6b3f1a;
+      --bark-l:   #a0622e;
+      --amber:    #e8960a;
+      --amber-l:  #ffc93c;
+      --sky:      #87ceeb;
+      --cream:    #fdf6e3;
+      --panel-w:  340px;
     }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: "Hiragino Sans", "Meiryo", sans-serif;
-      background: #f5f5f5;
-      color: #333;
+      font-family: "Hiragino Sans", "Meiryo", "Yu Gothic", sans-serif;
+      background: var(--cream);
+      color: #2c1a08;
+      overflow: hidden;
     }
 
+    /* ===== HEADER ===== */
     header {
-      background: #e11;
-      color: #fff;
-      padding: 12px 20px;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      height: 58px;
+      background: linear-gradient(135deg, var(--forest-d) 0%, var(--forest) 60%, #3d7a2e 100%);
       display: flex;
       align-items: center;
+      padding: 0 18px;
       gap: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.4);
     }
 
-    header h1 {
-      font-size: 1.2rem;
+    .header-icon {
+      font-size: 2rem;
+      line-height: 1;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+    }
+
+    .header-title {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-title h1 {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--amber-l);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+      letter-spacing: 0.05em;
+    }
+
+    .header-title p {
+      font-size: 0.65rem;
+      color: #c8e6a0;
+      letter-spacing: 0.08em;
+    }
+
+    .header-badge {
+      margin-left: auto;
+      background: var(--amber);
+      color: #fff;
+      font-size: 0.7rem;
       font-weight: bold;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 2px solid var(--amber-l);
+      white-space: nowrap;
     }
 
+    /* ===== MAP ===== */
     #map {
-      width: 100%;
-      height: calc(100vh - 56px);
+      position: fixed;
+      top: 58px; left: 0; right: 0; bottom: 0;
+      transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    body.panel-open #map {
+      right: var(--panel-w);
+    }
+
+    /* ===== SIDE PANEL ===== */
+    #side-panel {
+      position: fixed;
+      top: 58px; right: calc(-1 * var(--panel-w)); bottom: 0;
+      width: var(--panel-w);
+      background: var(--cream);
+      border-left: 4px solid var(--bark);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -4px 0 16px rgba(0,0,0,0.25);
+      overflow: hidden;
+    }
+
+    body.panel-open #side-panel {
+      right: 0;
+    }
+
+    .panel-header {
+      background: linear-gradient(135deg, var(--bark) 0%, var(--bark-l) 100%);
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .panel-header-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .panel-spot-icon {
+      font-size: 1.6rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    #panel-spot-name {
+      font-size: 1rem;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+      word-break: break-all;
+      line-height: 1.35;
+    }
+
+    #panel-confirmed {
+      font-size: 0.7rem;
+      color: #f0d090;
+      margin-top: 3px;
+    }
+
+    .panel-close {
+      background: none;
+      border: 2px solid rgba(255,255,255,0.5);
+      border-radius: 50%;
+      color: #fff;
+      font-size: 1rem;
+      width: 30px; height: 30px;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .panel-close:hover { background: rgba(255,255,255,0.2); }
+
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel-section {
+      background: #fff;
+      border-radius: 10px;
+      border-left: 4px solid var(--forest);
+      padding: 10px 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .panel-section.bark-accent { border-left-color: var(--bark); }
+    .panel-section.amber-accent { border-left-color: var(--amber); }
+
+    .section-label {
+      font-size: 0.65rem;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      color: var(--forest);
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .section-label.bark { color: var(--bark); }
+    .section-label.amber { color: #b06800; }
+
+    .section-value {
+      font-size: 0.88rem;
+      line-height: 1.55;
+      color: #2c1a08;
+      word-break: break-all;
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 2px;
+    }
+
+    .tag {
+      font-size: 0.75rem;
+      font-weight: bold;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .tag.green {
+      background: #d4edda;
+      color: var(--forest-d);
+      border: 1px solid #a8d5b0;
+    }
+
+    .tag.brown {
+      background: #f5e6d3;
+      color: var(--bark);
+      border: 1px solid #d4b48a;
+    }
+
+    .ref-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--forest-d);
+      font-size: 0.82rem;
+      text-decoration: none;
+      word-break: break-all;
+      border-bottom: 1px dashed var(--forest);
+      padding-bottom: 1px;
+      transition: color 0.2s;
+    }
+
+    .ref-link:hover { color: var(--amber); border-color: var(--amber); }
+
+    /* ===== ERROR ===== */
     #error-msg {
       display: none;
-      position: absolute;
+      position: fixed;
       top: 70px;
       left: 50%;
       transform: translateX(-50%);
-      background: #fff3cd;
-      border: 1px solid #ffc107;
-      border-radius: 6px;
+      background: #fff8e1;
+      border: 2px solid var(--amber);
+      border-radius: 10px;
       padding: 12px 20px;
-      font-size: 0.9rem;
-      z-index: 1000;
+      font-size: 0.88rem;
+      z-index: 300;
       max-width: 90%;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
     }
+
+    /* ===== SPOT COUNT BADGE ===== */
+    #spot-count {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      z-index: 150;
+      background: var(--forest-d);
+      color: var(--amber-l);
+      font-size: 0.78rem;
+      font-weight: bold;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 2px solid var(--amber);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      letter-spacing: 0.05em;
+      display: none;
+    }
+
+    /* scrollbar */
+    .panel-body::-webkit-scrollbar { width: 5px; }
+    .panel-body::-webkit-scrollbar-thumb { background: var(--bark-l); border-radius: 3px; }
+    .panel-body::-webkit-scrollbar-track { background: transparent; }
   </style>
 </head>
 <body>
+
   <header>
-    <h1>YOLP マップデモ</h1>
+    <div class="header-icon">🪲</div>
+    <div class="header-title">
+      <h1>ドコドコカブトムシ</h1>
+      <p>カブトムシ・クワガタ採集スポットマップ</p>
+    </div>
+    <div class="header-badge">🌲 採集マップ</div>
   </header>
 
-  <div id="error-msg"></div>
   <div id="map"></div>
+  <div id="error-msg"></div>
+  <div id="spot-count"></div>
+
+  <!-- サイドパネル -->
+  <div id="side-panel" role="complementary" aria-label="スポット詳細">
+    <div class="panel-header">
+      <div class="panel-spot-icon">📍</div>
+      <div class="panel-header-text">
+        <div id="panel-spot-name">スポット名</div>
+        <div id="panel-confirmed"></div>
+      </div>
+      <button class="panel-close" id="panel-close-btn" aria-label="閉じる">✕</button>
+    </div>
+    <div class="panel-body">
+      <div class="panel-section">
+        <div class="section-label">🌿 採集メモ</div>
+        <div class="section-value" id="panel-summary">—</div>
+      </div>
+      <div class="panel-section bark-accent">
+        <div class="section-label bark">🌳 樹木の種類</div>
+        <div class="tag-list" id="panel-trees"></div>
+      </div>
+      <div class="panel-section amber-accent">
+        <div class="section-label amber">🪲 狙える虫</div>
+        <div class="tag-list" id="panel-species"></div>
+      </div>
+      <div class="panel-section bark-accent">
+        <div class="section-label bark">🔗 参考サイト</div>
+        <div class="section-value" id="panel-ref">—</div>
+      </div>
+    </div>
+  </div>
 
   <script>
     // ===== 定数設定 =====
-    const YOLP_APP_ID = "YOUR_APP_ID_HERE";
-    const LOCATIONS_API_URL = "https://example.com/api/locations"; // 座標取得APIのURL
-    const MAP_CENTER = { lat: 35.681236, lng: 139.767125 }; // 初期表示中心（東京駅付近）
-    const MAP_ZOOM = 12;
+    const YOLP_APP_ID      = "YOUR_APP_ID_HERE";
+    const SPOTS_API_URL    = "https://example.com/api/spots"; // 採集スポットAPIのURL
+    const MAP_CENTER       = { lat: 35.660, lng: 139.500 };   // 初期表示中心
+    const MAP_ZOOM         = 10;
     // ====================
 
     function showError(msg) {
       const el = document.getElementById("error-msg");
-      el.textContent = msg;
+      el.textContent = "⚠️ " + msg;
       el.style.display = "block";
     }
 
-    function initMap(locations) {
-      const map = new Y.Map("map");
+    function openPanel(spot) {
+      document.getElementById("panel-spot-name").textContent = spot.spot_name;
 
+      const confirmed = spot.confirmed_date
+        ? "確認日: " + spot.confirmed_date
+        : "";
+      document.getElementById("panel-confirmed").textContent = confirmed;
+
+      document.getElementById("panel-summary").textContent =
+        spot.collection_summary || "—";
+
+      const treesEl = document.getElementById("panel-trees");
+      treesEl.innerHTML = "";
+      if (spot.tree_type) {
+        spot.tree_type.split(/[,、，]/).forEach(function(t) {
+          const tag = document.createElement("span");
+          tag.className = "tag green";
+          tag.textContent = t.trim();
+          treesEl.appendChild(tag);
+        });
+      }
+
+      const speciesEl = document.getElementById("panel-species");
+      speciesEl.innerHTML = "";
+      if (spot.target_species) {
+        spot.target_species.split(/[,、，]/).forEach(function(s) {
+          const tag = document.createElement("span");
+          tag.className = "tag brown";
+          tag.textContent = s.trim();
+          speciesEl.appendChild(tag);
+        });
+      }
+
+      const refEl = document.getElementById("panel-ref");
+      if (spot.reference_url) {
+        refEl.innerHTML =
+          '<a class="ref-link" href="' + spot.reference_url +
+          '" target="_blank" rel="noopener noreferrer">🌐 ' +
+          spot.reference_url + '</a>';
+      } else {
+        refEl.textContent = "—";
+      }
+
+      document.body.classList.add("panel-open");
+    }
+
+    function closePanel() {
+      document.body.classList.remove("panel-open");
+    }
+
+    document.getElementById("panel-close-btn").addEventListener("click", closePanel);
+
+    function initMap(spots) {
+      const map = new Y.Map("map");
       map.drawMap(
         new Y.LatLng(MAP_CENTER.lat, MAP_CENTER.lng),
         MAP_ZOOM,
         Y.Map.NORMAL
       );
 
-      locations.forEach(function(loc) {
-        const latlng = new Y.LatLng(loc.lat, loc.lng);
-        const marker = new Y.Marker(latlng);
-        const label = new Y.Label(loc.name);
+      spots.forEach(function(spot) {
+        const latlng  = new Y.LatLng(spot.latitude, spot.longitude);
+        const marker  = new Y.Marker(latlng);
+        const label   = new Y.Label(spot.spot_name);
         marker.addFeature(label);
         map.addFeature(marker);
+
+        Y.Event.observe(marker, "click", function() {
+          openPanel(spot);
+        });
       });
+
+      const countEl = document.getElementById("spot-count");
+      countEl.textContent = "🌲 スポット " + spots.length + " 件";
+      countEl.style.display = "block";
     }
 
-    function loadScript() {
-      const script = document.createElement("script");
-      script.src =
-        "https://map.yahooapis.jp/js/V3/jsapi?appid=" + YOLP_APP_ID;
-      script.onload = fetchLocations;
-      script.onerror = function() {
-        showError(
-          "Yahoo Maps の読み込みに失敗しました。App ID を確認してください。"
-        );
-      };
-      document.head.appendChild(script);
-    }
-
-    function fetchLocations() {
-      fetch(LOCATIONS_API_URL)
+    function fetchSpots() {
+      fetch(SPOTS_API_URL)
         .then(function(res) {
           if (!res.ok) throw new Error("HTTP " + res.status);
           return res.json();
@@ -116,8 +425,19 @@
           initMap(data);
         })
         .catch(function(err) {
-          showError("座標データの取得に失敗しました: " + err.message);
+          showError("スポットデータの取得に失敗しました: " + err.message);
         });
+    }
+
+    function loadScript() {
+      const script = document.createElement("script");
+      script.src =
+        "https://map.yahooapis.jp/js/V3/jsapi?appid=" + YOLP_APP_ID;
+      script.onload = fetchSpots;
+      script.onerror = function() {
+        showError("Yahoo Maps の読み込みに失敗しました。App ID を確認してください。");
+      };
+      document.head.appendChild(script);
     }
 
     loadScript();
