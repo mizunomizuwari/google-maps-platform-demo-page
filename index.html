@@ -465,7 +465,9 @@
         trace("importLibrary(maps) 完了", { Map: typeof Map });
 
         const mapEl = document.getElementById("map");
-        trace("マップ要素確認", { el: mapEl, offsetWidth: mapEl ? mapEl.offsetWidth : "N/A", offsetHeight: mapEl ? mapEl.offsetHeight : "N/A" });
+        const cs = mapEl ? window.getComputedStyle(mapEl) : null;
+        trace("マップ要素サイズ: offsetWidth=" + (mapEl ? mapEl.offsetWidth : "N/A") + " offsetHeight=" + (mapEl ? mapEl.offsetHeight : "N/A"));
+        trace("マップ要素CSS: display=" + (cs ? cs.display : "N/A") + " visibility=" + (cs ? cs.visibility : "N/A") + " opacity=" + (cs ? cs.opacity : "N/A") + " zIndex=" + (cs ? cs.zIndex : "N/A") + " position=" + (cs ? cs.position : "N/A"));
 
         const map = new Map(mapEl, {
           center: MAP_CENTER,
@@ -473,7 +475,13 @@
           mapTypeId: google.maps.MapTypeId.ROADMAP,
           mapId: "DEMO_MAP_ID",
         });
-        trace("Map インスタンス生成完了", { map: typeof map });
+        trace("Map インスタンス生成完了");
+
+        // 1秒後にDOMに子要素が追加されているか確認
+        setTimeout(function() {
+          trace("Map DOM子要素数(1秒後): " + (mapEl ? mapEl.children.length : "N/A"));
+          trace("Map DOM innerHTML先頭100文字: " + (mapEl ? mapEl.innerHTML.substring(0, 100) : "N/A"));
+        }, 1000);
 
         fetchAndPlaceMarkers(map);
       } catch (err) {
