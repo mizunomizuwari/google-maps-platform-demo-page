@@ -480,7 +480,7 @@
         // 1秒後にDOMに子要素が追加されているか確認
         setTimeout(function() {
           trace("Map DOM子要素数(1秒後): " + (mapEl ? mapEl.children.length : "N/A"));
-          trace("Map DOM innerHTML先頭100文字: " + (mapEl ? mapEl.innerHTML.substring(0, 100) : "N/A"));
+          trace("Map DOM innerHTML先頭200文字: " + (mapEl ? mapEl.innerHTML.substring(0, 200) : "N/A"));
         }, 1000);
 
         fetchAndPlaceMarkers(map);
