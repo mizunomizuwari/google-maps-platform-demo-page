@@ -69,11 +69,43 @@
   <script>
     const SPOTS_API_URL = "https://yolp-api-344368516237.asia-northeast1.run.app/";
 
+    function esc(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function buildInfoContent(spot) {
+      var html = '<div style="max-width:260px;font-size:13px;line-height:1.6">';
+      html += '<div style="font-weight:bold;font-size:15px;margin-bottom:6px">' + esc(spot.spot_name) + '</div>';
+      if (spot.confirmed_date) {
+        html += '<div style="color:#888;font-size:11px;margin-bottom:6px">確認日: ' + esc(spot.confirmed_date) + '</div>';
+      }
+      if (spot.collection_summary) {
+        html += '<div style="margin-bottom:8px">' + esc(spot.collection_summary) + '</div>';
+      }
+      if (spot.tree_type) {
+        html += '<div style="margin-bottom:4px">🌳 ' + esc(spot.tree_type) + '</div>';
+      }
+      if (spot.target_species) {
+        html += '<div style="margin-bottom:4px">🪲 ' + esc(spot.target_species) + '</div>';
+      }
+      if (spot.reference_url) {
+        html += '<div style="margin-top:8px"><a href="' + esc(spot.reference_url) + '" target="_blank" rel="noopener noreferrer">🌐 参考サイト</a></div>';
+      }
+      html += '</div>';
+      return html;
+    }
+
     function initMap() {
-      const map = new google.maps.Map(document.getElementById("map"), {
+      var map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: 35.660, lng: 139.500 },
         zoom: 10,
       });
+
+      var openInfoWindow = null;
 
       fetch(SPOTS_API_URL)
         .then(function(res) {
@@ -82,10 +114,20 @@
         })
         .then(function(spots) {
           spots.forEach(function(spot) {
-            new google.maps.Marker({
+            var marker = new google.maps.Marker({
               position: { lat: spot.latitude, lng: spot.longitude },
               map: map,
               title: spot.spot_name,
+            });
+
+            var infoWindow = new google.maps.InfoWindow({
+              content: buildInfoContent(spot),
+            });
+
+            marker.addListener("click", function() {
+              if (openInfoWindow) openInfoWindow.close();
+              infoWindow.open({ anchor: marker, map: map });
+              openInfoWindow = infoWindow;
             });
           });
         })
