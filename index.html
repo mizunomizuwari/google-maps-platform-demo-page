@@ -430,17 +430,17 @@
         const spots = await res.json();
         trace("スポットデータ取得完了", { count: Array.isArray(spots) ? spots.length : typeof spots, sample: spots[0] });
 
-        trace("importLibrary(marker) 開始");
-        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+        // mapId 不要なレガシー Marker で診断（mapId 問題の切り分け用）
+        const { Marker } = await google.maps.importLibrary("marker");
         trace("importLibrary(marker) 完了");
 
         spots.forEach(function(spot) {
-          const marker = new AdvancedMarkerElement({
+          const marker = new Marker({
             position: { lat: spot.latitude, lng: spot.longitude },
             map: map,
             title: spot.spot_name,
           });
-          marker.addEventListener("gmp-click", function() {
+          marker.addListener("click", function() {
             openPanel(spot);
           });
         });
@@ -469,11 +469,12 @@
         trace("マップ要素サイズ: offsetWidth=" + (mapEl ? mapEl.offsetWidth : "N/A") + " offsetHeight=" + (mapEl ? mapEl.offsetHeight : "N/A"));
         trace("マップ要素CSS: display=" + (cs ? cs.display : "N/A") + " visibility=" + (cs ? cs.visibility : "N/A") + " opacity=" + (cs ? cs.opacity : "N/A") + " zIndex=" + (cs ? cs.zIndex : "N/A") + " position=" + (cs ? cs.position : "N/A"));
 
+        // mapId: "DEMO_MAP_ID" を外す（WebGLベースのVector Mapを強制するため
+        // iOS WebKitでタイルが出ない問題を切り分けるための診断変更）
         const map = new Map(mapEl, {
           center: MAP_CENTER,
           zoom: MAP_ZOOM,
-          mapTypeId: google.maps.MapTypeId.ROADMAP,
-          mapId: "DEMO_MAP_ID",
+          mapTypeId: "roadmap",
         });
         trace("Map インスタンス生成完了");
 
