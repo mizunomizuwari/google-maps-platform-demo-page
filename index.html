@@ -374,10 +374,14 @@
 
       const refEl = document.getElementById("panel-ref");
       if (spot.reference_url) {
-        refEl.innerHTML =
-          '<a class="ref-link" href="' + spot.reference_url +
-          '" target="_blank" rel="noopener noreferrer">🌐 ' +
-          spot.reference_url + '</a>';
+        const a = document.createElement("a");
+        a.className = "ref-link";
+        a.href = spot.reference_url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = "🌐 " + spot.reference_url;
+        refEl.innerHTML = "";
+        refEl.appendChild(a);
       } else {
         refEl.textContent = "—";
       }
@@ -391,64 +395,64 @@
 
     document.getElementById("panel-close-btn").addEventListener("click", closePanel);
 
-    async function renderMap(spots) {
-      const { Map } = await google.maps.importLibrary("maps");
-      const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+    async function fetchAndPlaceMarkers(map) {
+      try {
+        const res = await fetch(SPOTS_API_URL);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const spots = await res.json();
 
-      const map = new Map(document.getElementById("map"), {
-        center: MAP_CENTER,
-        zoom: MAP_ZOOM,
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
-        mapId: "DEMO_MAP_ID",
-      });
+        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
 
-      spots.forEach(function(spot) {
-        const marker = new AdvancedMarkerElement({
-          position: { lat: spot.latitude, lng: spot.longitude },
-          map: map,
-          title: spot.spot_name,
-        });
-
-        marker.addEventListener("gmp-click", function() {
-          openPanel(spot);
-        });
-      });
-
-      const countEl = document.getElementById("spot-count");
-      countEl.textContent = "🌲 スポット " + spots.length + " 件";
-      countEl.style.display = "block";
-    }
-
-    function fetchSpots() {
-      fetch(SPOTS_API_URL)
-        .then(function(res) {
-          if (!res.ok) throw new Error("HTTP " + res.status);
-          return res.json();
-        })
-        .then(function(data) {
-          renderMap(data).catch(function(err) {
-            showError("地図の表示に失敗しました: " + err.message);
+        spots.forEach(function(spot) {
+          const marker = new AdvancedMarkerElement({
+            position: { lat: spot.latitude, lng: spot.longitude },
+            map: map,
+            title: spot.spot_name,
           });
-        })
-        .catch(function(err) {
-          showError("スポットデータの取得に失敗しました: " + err.message);
+          marker.addEventListener("gmp-click", function() {
+            openPanel(spot);
+          });
         });
+
+        const countEl = document.getElementById("spot-count");
+        countEl.textContent = "🌲 スポット " + spots.length + " 件";
+        countEl.style.display = "block";
+      } catch (err) {
+        showError("スポットデータの取得に失敗しました: " + err.message);
+      }
     }
+
+    // Maps API ロード完了後に呼ばれるグローバルコールバック
+    window.initGoogleMaps = async function() {
+      try {
+        const { Map } = await google.maps.importLibrary("maps");
+
+        const map = new Map(document.getElementById("map"), {
+          center: MAP_CENTER,
+          zoom: MAP_ZOOM,
+          mapTypeId: google.maps.MapTypeId.ROADMAP,
+          mapId: "DEMO_MAP_ID",
+        });
+
+        fetchAndPlaceMarkers(map);
+      } catch (err) {
+        showError("地図の初期化に失敗しました: " + err.message);
+      }
+    };
 
     (function() {
       const script = document.createElement("script");
       script.src =
         "https://maps.googleapis.com/maps/api/js" +
         "?key=" + GOOGLE_MAPS_API_KEY +
-        "&loading=async";
+        "&loading=async" +
+        "&callback=initGoogleMaps";
       script.async = true;
       script.onerror = function() {
         showError("Google Maps の読み込みに失敗しました。API キーを確認してください。");
       };
       document.head.appendChild(script);
     })();
-
-    fetchSpots();
   </script>
 </body>
 </html>
