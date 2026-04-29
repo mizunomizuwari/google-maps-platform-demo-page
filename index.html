@@ -67,11 +67,31 @@
   <div id="map"></div>
 
   <script>
+    const SPOTS_API_URL = "https://yolp-api-344368516237.asia-northeast1.run.app/";
+
     function initMap() {
-      new google.maps.Map(document.getElementById("map"), {
+      const map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: 35.660, lng: 139.500 },
         zoom: 10,
       });
+
+      fetch(SPOTS_API_URL)
+        .then(function(res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.json();
+        })
+        .then(function(spots) {
+          spots.forEach(function(spot) {
+            new google.maps.Marker({
+              position: { lat: spot.latitude, lng: spot.longitude },
+              map: map,
+              title: spot.spot_name,
+            });
+          });
+        })
+        .catch(function(err) {
+          console.error("スポットデータ取得失敗:", err.message);
+        });
     }
   </script>
   <script
