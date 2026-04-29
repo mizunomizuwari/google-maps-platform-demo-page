@@ -336,10 +336,36 @@
     const MAP_ZOOM            = 10;
     // ====================
 
+    // ===== デバッグトレース =====
+    const _t0 = Date.now();
+    function trace(label, data) {
+      const msg = "[" + (Date.now() - _t0) + "ms] " + label;
+      if (data !== undefined) {
+        console.log(msg, data);
+      } else {
+        console.log(msg);
+      }
+    }
+
+    // 未捕捉の Promise rejection を全て拾う
+    window.addEventListener("unhandledrejection", function(e) {
+      trace("unhandledrejection", e.reason);
+      showError("未捕捉エラー: " + (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
+    });
+
+    // 未捕捉の同期エラーを全て拾う
+    window.addEventListener("error", function(e) {
+      trace("window.onerror", { message: e.message, filename: e.filename, lineno: e.lineno });
+    });
+
+    trace("スクリプト開始");
+    // ===========================
+
     function showError(msg) {
       const el = document.getElementById("error-msg");
       el.textContent = "⚠️ " + msg;
       el.style.display = "block";
+      trace("showError呼び出し", msg);
     }
 
     function openPanel(spot) {
@@ -396,12 +422,17 @@
     document.getElementById("panel-close-btn").addEventListener("click", closePanel);
 
     async function fetchAndPlaceMarkers(map) {
+      trace("fetchAndPlaceMarkers 開始", SPOTS_API_URL);
       try {
         const res = await fetch(SPOTS_API_URL);
+        trace("fetch レスポンス受信", { status: res.status, ok: res.ok });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const spots = await res.json();
+        trace("スポットデータ取得完了", { count: Array.isArray(spots) ? spots.length : typeof spots, sample: spots[0] });
 
+        trace("importLibrary(marker) 開始");
         const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+        trace("importLibrary(marker) 完了");
 
         spots.forEach(function(spot) {
           const marker = new AdvancedMarkerElement({
@@ -413,45 +444,63 @@
             openPanel(spot);
           });
         });
+        trace("マーカー配置完了", { count: spots.length });
 
         const countEl = document.getElementById("spot-count");
         countEl.textContent = "🌲 スポット " + spots.length + " 件";
         countEl.style.display = "block";
       } catch (err) {
+        trace("fetchAndPlaceMarkers エラー", { message: err.message, stack: err.stack });
         showError("スポットデータの取得に失敗しました: " + err.message);
       }
     }
 
     // Maps API ロード完了後に呼ばれるグローバルコールバック
     window.initGoogleMaps = async function() {
+      trace("initGoogleMaps コールバック呼び出し");
+      trace("google オブジェクト確認", { google: typeof google, maps: typeof google !== "undefined" ? typeof google.maps : "N/A" });
       try {
+        trace("importLibrary(maps) 開始");
         const { Map } = await google.maps.importLibrary("maps");
+        trace("importLibrary(maps) 完了", { Map: typeof Map });
 
-        const map = new Map(document.getElementById("map"), {
+        const mapEl = document.getElementById("map");
+        trace("マップ要素確認", { el: mapEl, offsetWidth: mapEl ? mapEl.offsetWidth : "N/A", offsetHeight: mapEl ? mapEl.offsetHeight : "N/A" });
+
+        const map = new Map(mapEl, {
           center: MAP_CENTER,
           zoom: MAP_ZOOM,
           mapTypeId: google.maps.MapTypeId.ROADMAP,
           mapId: "DEMO_MAP_ID",
         });
+        trace("Map インスタンス生成完了", { map: typeof map });
 
         fetchAndPlaceMarkers(map);
       } catch (err) {
+        trace("initGoogleMaps エラー", { message: err.message, stack: err.stack });
         showError("地図の初期化に失敗しました: " + err.message);
       }
     };
 
     (function() {
+      trace("Maps API スクリプトタグ追加開始");
       const script = document.createElement("script");
       script.src =
         "https://maps.googleapis.com/maps/api/js" +
         "?key=" + GOOGLE_MAPS_API_KEY +
         "&loading=async" +
         "&callback=initGoogleMaps";
+      trace("スクリプト URL", script.src.replace(GOOGLE_MAPS_API_KEY, "***KEY***"));
       script.async = true;
+      script.onload = function() {
+        trace("Maps API スクリプト onload 発火");
+      };
       script.onerror = function() {
+        trace("Maps API スクリプト onerror 発火");
         showError("Google Maps の読み込みに失敗しました。API キーを確認してください。");
       };
       document.head.appendChild(script);
+      trace("Maps API スクリプトタグ追加完了");
     })();
   </script>
 </body>
